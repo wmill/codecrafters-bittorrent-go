@@ -32,6 +32,11 @@ func decodeBencode(bencodedString string) (interface{}, error) {
 		}
 
 		return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], nil
+	} else if rune(bencodedString[0])  == 'i' {
+		length := len(bencodedString)
+		stringInt := bencodedString[1:length-1]
+		integer, err := strconv.Atoi(stringInt)
+		return integer, err
 	} else {
 		return "", fmt.Errorf("Only strings are supported at the moment")
 	}
