@@ -2,6 +2,7 @@ package main
 
 import (
 	// Uncomment this line to pass the first stage
+	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,40 +11,6 @@ import (
 	// bencode "github.com/jackpal/bencode-go" // Available if you need it!
 )
 
-// Example:
-// - 5:hello -> hello
-// - 10:hello12345 -> hello12345
-// func decodeBencode(bencodedString string) (interface{}, error) {
-// 	if unicode.IsDigit(rune(bencodedString[0])) {
-// 		var firstColonIndex int
-
-// 		for i := 0; i < len(bencodedString); i++ {
-// 			if bencodedString[i] == ':' {
-// 				firstColonIndex = i
-// 				break
-// 			}
-// 		}
-
-// 		lengthStr := bencodedString[:firstColonIndex]
-
-// 		length, err := strconv.Atoi(lengthStr)
-// 		if err != nil {
-// 			return "", err
-// 		}
-
-// 		return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], nil
-// 	} else if rune(bencodedString[0])  == 'i' {
-// 		length := len(bencodedString)
-// 		if bencodedString[length-1] != 'e' {
-// 			return "", fmt.Errorf("Invalid integer")
-// 		}
-// 		stringInt := bencodedString[1:length-1]
-// 		integer, err := strconv.Atoi(stringInt)
-// 		return integer, err
-// 	} else {
-// 		return "", fmt.Errorf("Only strings are supported at the moment")
-// 	}
-// }
 
 func info(torrentData []byte) {
 	decoded, err := altbencode.Decode(string(torrentData))
@@ -61,13 +28,16 @@ func info(torrentData []byte) {
 	info := baseMap["info"].GetData().(map[string]altbencode.Node)
 
 	fmt.Println("Length: " + fmt.Sprint((info["length"]).GetData().(int)))
-	//fmt.Println("Length: " + fmt.Sprint(length.GetData().(int)))
 
+	infoBencoded, err := altbencode.Encode(baseMap["info"]);
+
+	// avoid thorny issues with encoding glyphs
+	infoBytes := []byte(infoBencoded)
+	// use crypto/sha1 to hash the info bencoded string
+	infoHash := sha1.Sum([]byte(infoBytes));
 
 	
-	// jsonOutput, _ := json.Marshal(decoded)
-	// fmt.Println(string(jsonOutput))
-
+	fmt.Printf("Info Hash: %x\n", infoHash)
 }
 
 func main() {
