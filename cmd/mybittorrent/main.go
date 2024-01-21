@@ -45,6 +45,31 @@ import (
 // 	}
 // }
 
+func info(torrentData []byte) {
+	decoded, err := altbencode.Decode(string(torrentData))
+	baseMap := decoded.GetData().(map[string]altbencode.Node)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// print the announce key
+	announce := baseMap["announce"]
+	fmt.Println("Tracker URL: " +  announce.GetData().(string))
+
+	info := baseMap["info"].GetData().(map[string]altbencode.Node)
+
+	fmt.Println("Length: " + fmt.Sprint((info["length"]).GetData().(int)))
+	//fmt.Println("Length: " + fmt.Sprint(length.GetData().(int)))
+
+
+	
+	// jsonOutput, _ := json.Marshal(decoded)
+	// fmt.Println(string(jsonOutput))
+
+}
+
 func main() {
 	command := os.Args[1]
 
@@ -59,6 +84,14 @@ func main() {
 		
 		jsonOutput, _ := json.Marshal(decoded)
 		fmt.Println(string(jsonOutput))
+	} else if command == "info" {
+		torrentFilePath := os.Args[2]
+		torrentData, err := os.ReadFile(torrentFilePath)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		info(torrentData)
 	} else {
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
