@@ -34,10 +34,19 @@ func info(torrentData []byte) {
 	// avoid thorny issues with encoding glyphs
 	infoBytes := []byte(infoBencoded)
 	// use crypto/sha1 to hash the info bencoded string
-	infoHash := sha1.Sum([]byte(infoBytes));
-
+	infoHash := sha1.Sum([]byte(infoBytes))
 	
 	fmt.Printf("Info Hash: %x\n", infoHash)
+
+	pieceLength := info["piece length"].GetData().(int)
+	pieces := info["pieces"].GetData().(string)
+
+	fmt.Println("Piece Length: " + fmt.Sprint(pieceLength))
+
+	fmt.Println("Pieces Hashes:")
+	for i := 0; i < len(pieces); i += 20 {
+		fmt.Printf("%x\n", pieces[i:i+20])
+	}
 }
 
 func main() {
