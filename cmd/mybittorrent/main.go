@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 
@@ -119,8 +120,40 @@ func fetchPeers(torrentData []byte) {
 		port := stringPeers[i+4:i+6]
 		fmt.Printf("%d.%d.%d.%d:%d\n", ip[0], ip[1], ip[2], ip[3], int(port[0])*256+ int(port[1]))
 	}
+}
 
+func handShake(torrentData []byte, peerAddress string) {
+	conn, err := net.Dial("tcp", peerAddress)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
+	defer conn.Close()
+
+	var conMessage []byte
+
+	conMessage = append(conMessage, []byte("\x13BitTorrent protocol\x00\x00\x00\x00\x00\x00\x00\x00")...)
+
+	decoded, err := altbencode.Decode(string(torrentData))
+	baseMap := decoded.GetData().(map[string]altbencode.Node)
+
+	//info := baseMap["info"].GetData().(map[string]altbencode.Node)
+
+	infoBencoded, err := altbencode.Encode(baseMap["info"]);
+	infoBytes := []byte(infoBencoded)
+	infoHash := sha1.Sum([]byte(infoBytes))
+	conMessage = append(conMessage, infoHash[:]...)
+	conMessage = append(conMessage, []byte("00112233445566778899")...)
+	// fmt.Println(conMessage)
+	// fmt.Println(len(conMessage))
+	conn.Write(conMessage)
+
+	reply := make([]byte, 68)
+	conn.Read(reply)
+	// fmt.Println(reply)
+	responsePeerId := reply[48:68]
+	fmt.Printf("Peer ID: %x\n", responsePeerId)
 }
 
 func main() {
@@ -154,6 +187,16 @@ func main() {
 			return
 		}
 		info(torrentData)
+	} else if command == "handshake" {
+		peerAddress := os.Args[3]
+		torrentFilePath := os.Args[2]
+		torrentData, err := os.ReadFile(torrentFilePath)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		handShake(torrentData, peerAddress)
 	} else {
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
