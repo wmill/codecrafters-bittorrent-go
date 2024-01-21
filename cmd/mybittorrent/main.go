@@ -5,42 +5,45 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
-	"unicode"
+
+	"github.com/codecrafters-io/bittorrent-starter-go/cmd/mybittorrent/altbencode"
 	// bencode "github.com/jackpal/bencode-go" // Available if you need it!
 )
 
 // Example:
 // - 5:hello -> hello
 // - 10:hello12345 -> hello12345
-func decodeBencode(bencodedString string) (interface{}, error) {
-	if unicode.IsDigit(rune(bencodedString[0])) {
-		var firstColonIndex int
+// func decodeBencode(bencodedString string) (interface{}, error) {
+// 	if unicode.IsDigit(rune(bencodedString[0])) {
+// 		var firstColonIndex int
 
-		for i := 0; i < len(bencodedString); i++ {
-			if bencodedString[i] == ':' {
-				firstColonIndex = i
-				break
-			}
-		}
+// 		for i := 0; i < len(bencodedString); i++ {
+// 			if bencodedString[i] == ':' {
+// 				firstColonIndex = i
+// 				break
+// 			}
+// 		}
 
-		lengthStr := bencodedString[:firstColonIndex]
+// 		lengthStr := bencodedString[:firstColonIndex]
 
-		length, err := strconv.Atoi(lengthStr)
-		if err != nil {
-			return "", err
-		}
+// 		length, err := strconv.Atoi(lengthStr)
+// 		if err != nil {
+// 			return "", err
+// 		}
 
-		return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], nil
-	} else if rune(bencodedString[0])  == 'i' {
-		length := len(bencodedString)
-		stringInt := bencodedString[1:length-1]
-		integer, err := strconv.Atoi(stringInt)
-		return integer, err
-	} else {
-		return "", fmt.Errorf("Only strings are supported at the moment")
-	}
-}
+// 		return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], nil
+// 	} else if rune(bencodedString[0])  == 'i' {
+// 		length := len(bencodedString)
+// 		if bencodedString[length-1] != 'e' {
+// 			return "", fmt.Errorf("Invalid integer")
+// 		}
+// 		stringInt := bencodedString[1:length-1]
+// 		integer, err := strconv.Atoi(stringInt)
+// 		return integer, err
+// 	} else {
+// 		return "", fmt.Errorf("Only strings are supported at the moment")
+// 	}
+// }
 
 func main() {
 	command := os.Args[1]
@@ -48,7 +51,7 @@ func main() {
 	if command == "decode" {
 		bencodedValue := os.Args[2]
 		
-		decoded, err := decodeBencode(bencodedValue)
+		decoded, err := altbencode.Decode(bencodedValue)
 		if err != nil {
 			fmt.Println(err)
 			return
