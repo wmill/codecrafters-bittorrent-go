@@ -17,17 +17,21 @@ func (n IntNode) MarshalJSON() ([]byte, error) {
 
 
 func decodeInteger(bencodedString string, startIndex int) (ParseResult, error) {
-	length := len(bencodedString)
-	if bencodedString[length-1] != 'e' {
-		return ParseResult{}, &InvalidBencodeError{"Invalid integer"}
+	endIndex := startIndex;
+
+	for bencodedString[endIndex] != 'e' {
+		endIndex++
 	}
-	stringInt := bencodedString[startIndex+1:length-1]
+	
+	stringInt := bencodedString[startIndex+1:endIndex]
 	integer, err := strconv.Atoi(stringInt)
+
+	
 	return ParseResult{
 		Node: IntNode{
 			Data: integer,
 		},
-		RemainingStringIndex: length,
+		RemainingStringIndex: endIndex + 1,
 	}, err
 }
 

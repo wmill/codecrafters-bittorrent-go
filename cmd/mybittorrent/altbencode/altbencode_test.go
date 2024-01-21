@@ -77,6 +77,31 @@ func TestDecodeAndEncodeList(t *testing.T) {
 	}
 }
 
+func TestDecodeAndEncodeList2(t *testing.T) {
+	testString := "l9:blueberryi683ee"
+	result, err := decodeList(testString,0)
+	if err != nil {
+		t.Error(err)
+	}
+	nodes := result.Node
+	remainingStringIndex := result.RemainingStringIndex
+
+	if remainingStringIndex != len(testString) {
+		t.Error("Expected remainingStringIndex to be equal to length of testString")
+	
+	}
+
+	resultString, err2 := encodeList(nodes)
+
+	if err2 != nil {
+		t.Error(err2)
+	}
+
+	if resultString != testString {
+		t.Errorf("Expected %s, got %s", testString, resultString)
+	}
+}
+
 func TestDecodeAndEncodeDictionary(t *testing.T) {
 	testString := "d3:cow3:moo4:spam4:eggse"
 	result, err := decodeDictionary(testString,0)
