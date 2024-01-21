@@ -1,6 +1,9 @@
 package altbencode
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"sort"
+)
 
 
 
@@ -50,12 +53,20 @@ func decodeDictionary(bencodedString string, startIndex int) (ParseResult, error
 func encodeDictionary(dictionary Node) (string, error) {
 	var result string
 	result += "d"
-	for key, node := range dictionary.GetData().(map[string]Node) {
+
+	theMap := dictionary.GetData().(map[string]Node)
+	keys := make([]string, 0, len(theMap))
+	for k := range theMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	
+	for _, key := range keys {
 		encodedKey, err := encodedString(StringNode{key})
 		if err != nil {
 			return "", err
 		}
-		encodedNode, err := encode(node)
+		encodedNode, err := encode(theMap[key])
 		if err != nil {
 			return "", err
 		}
