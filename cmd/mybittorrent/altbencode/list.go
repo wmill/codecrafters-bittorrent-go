@@ -33,6 +33,8 @@ func encodeList(list Node) (string, error) {
 
 func decodeList(bencodedString string, startIndex int) (ParseResult, error) {
 	var children []Node
+	children = make([]Node, 0)
+	
 	index := startIndex + 1
 	for index < len(bencodedString) {
 		if bencodedString[index] == 'e' {
