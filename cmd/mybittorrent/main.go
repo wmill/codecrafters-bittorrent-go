@@ -16,45 +16,24 @@ import (
 
 
 
-
-func info(torrentData []byte) {
-	decoded, err := altbencode.Decode(string(torrentData))
-	baseMap := decoded.GetData().(map[string]altbencode.Node)
-
+func cmdInfo(torrentData []byte) {
+	torrentDetails, err := parseTorrentFile(torrentData)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-
-	// print the announce key
-	announce := baseMap["announce"]
-	fmt.Println("Tracker URL: " +  announce.GetData().(string))
-
-	info := baseMap["info"].GetData().(map[string]altbencode.Node)
-
-	fmt.Println("Length: " + fmt.Sprint((info["length"]).GetData().(int)))
-
-	infoBencoded, err := altbencode.Encode(baseMap["info"]);
-
-	// avoid thorny issues with encoding glyphs
-	infoBytes := []byte(infoBencoded)
-	// use crypto/sha1 to hash the info bencoded string
-	infoHash := sha1.Sum([]byte(infoBytes))
-	
-	fmt.Printf("Info Hash: %x\n", infoHash)
-
-	pieceLength := info["piece length"].GetData().(int)
-	pieces := info["pieces"].GetData().(string)
-
-	fmt.Println("Piece Length: " + fmt.Sprint(pieceLength))
-
+	fmt.Println("Tracker URL: " +  torrentDetails.Announce)
+	fmt.Println("Length: " + fmt.Sprint(torrentDetails.Length))
+	fmt.Printf("Info Hash: %x\n", torrentDetails.InfoHash)
+	fmt.Println("Piece Length: " + fmt.Sprint(torrentDetails.PieceLength))
 	fmt.Println("Pieces Hashes:")
-	for i := 0; i < len(pieces); i += 20 {
-		fmt.Printf("%x\n", pieces[i:i+20])
+	for _, piece := range torrentDetails.Pieces {
+		fmt.Printf("%x\n", piece)
 	}
+
 }
 
-func fetchPeers(torrentData []byte) {
+func cmdFetchPeers(torrentData []byte) {
 	decoded, err := altbencode.Decode(string(torrentData))
 	baseMap := decoded.GetData().(map[string]altbencode.Node)
 
@@ -122,7 +101,7 @@ func fetchPeers(torrentData []byte) {
 	}
 }
 
-func handShake(torrentData []byte, peerAddress string) {
+func cmdHandShake(torrentData []byte, peerAddress string) {
 	conn, err := net.Dial("tcp", peerAddress)
 	if err != nil {
 		fmt.Println(err)
@@ -138,15 +117,13 @@ func handShake(torrentData []byte, peerAddress string) {
 	decoded, err := altbencode.Decode(string(torrentData))
 	baseMap := decoded.GetData().(map[string]altbencode.Node)
 
-	//info := baseMap["info"].GetData().(map[string]altbencode.Node)
 
 	infoBencoded, err := altbencode.Encode(baseMap["info"]);
 	infoBytes := []byte(infoBencoded)
 	infoHash := sha1.Sum([]byte(infoBytes))
 	conMessage = append(conMessage, infoHash[:]...)
 	conMessage = append(conMessage, []byte("00112233445566778899")...)
-	// fmt.Println(conMessage)
-	// fmt.Println(len(conMessage))
+
 	conn.Write(conMessage)
 
 	reply := make([]byte, 68)
@@ -177,7 +154,7 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-		fetchPeers(torrentData)
+		cmdFetchPeers(torrentData)
 
 	} else if command == "info" {
 		torrentFilePath := os.Args[2]
@@ -186,7 +163,7 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-		info(torrentData)
+		cmdInfo(torrentData)
 	} else if command == "handshake" {
 		peerAddress := os.Args[3]
 		torrentFilePath := os.Args[2]
@@ -196,7 +173,7 @@ func main() {
 			return
 		}
 
-		handShake(torrentData, peerAddress)
+		cmdHandShake(torrentData, peerAddress)
 	} else {
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
