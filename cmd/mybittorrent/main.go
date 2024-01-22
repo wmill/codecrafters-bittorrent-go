@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/codecrafters-io/bittorrent-starter-go/cmd/mybittorrent/altbencode"
 	// bencode "github.com/jackpal/bencode-go" // Available if you need it!
@@ -60,14 +61,14 @@ func cmdDownloadPiece(torrentData []byte, outputFilename string, pieceId string)
 		return
 	}
 	addPeersToTorrentDetails(&torrentDetails)
-	// pieceIndex, err := strconv.Atoi(pieceId)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
-	// // just use the first peer for now
-	// peer := torrentDetails.Peers[0]
-	// decodedHandshake, _ := handshake(torrentDetails, peer.IP + ":" + fmt.Sprint(peer.Port))
+	pieceIndex, err := strconv.Atoi(pieceId)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	// just use the first peer for now
+	peer := torrentDetails.Peers[0]
+	downloadPiece(&torrentDetails, peer, pieceIndex, outputFilename)
 }
 
 func main() {

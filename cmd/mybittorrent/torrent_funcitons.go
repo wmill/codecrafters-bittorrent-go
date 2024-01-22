@@ -175,8 +175,3 @@ func addPeersToTorrentDetails(torrentDetails *TorrentDetails)  {
 
 }
 
-
-func downloadPiece(pieceIndex int, peer TorrentPeer, outputFilename string) {
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", peer.IP, peer.Port))
-
-}
