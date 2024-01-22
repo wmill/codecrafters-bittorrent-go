@@ -2,10 +2,9 @@ package main
 
 import (
 	// Uncomment this line to pass the first stage
-	"crypto/sha1"
+
 	"encoding/json"
 	"fmt"
-	"net"
 	"os"
 
 	"github.com/codecrafters-io/bittorrent-starter-go/cmd/mybittorrent/altbencode"
@@ -25,7 +24,7 @@ func cmdInfo(torrentData []byte) {
 	fmt.Printf("Info Hash: %x\n", torrentDetails.InfoHash)
 	fmt.Println("Piece Length: " + fmt.Sprint(torrentDetails.PieceLength))
 	fmt.Println("Pieces Hashes:")
-	for _, piece := range torrentDetails.Pieces {
+	for _, piece := range torrentDetails.PieceHashes {
 		fmt.Printf("%x\n", piece)
 	}
 
@@ -43,36 +42,32 @@ func cmdFetchPeers(torrentData []byte) {
 	}
 }
 
-func cmdHandShake(torrentData []byte, peerAddress string) {
-	conn, err := net.Dial("tcp", peerAddress)
+func cmdHandShake(torrentData []byte,  peerAddress string) {
+	torrentDetails, err := parseTorrentFile(torrentData)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	addPeersToTorrentDetails(&torrentDetails)
+	decodedHandshake, _ := handshake(torrentDetails, peerAddress)
+	fmt.Printf("Peer ID: %x\n", decodedHandshake.PeerId)
+}
 
-	defer conn.Close()
-
-	var conMessage []byte
-
-	conMessage = append(conMessage, []byte("\x13BitTorrent protocol\x00\x00\x00\x00\x00\x00\x00\x00")...)
-
-	decoded, err := altbencode.Decode(string(torrentData))
-	baseMap := decoded.GetData().(map[string]altbencode.Node)
-
-
-	infoBencoded, err := altbencode.Encode(baseMap["info"]);
-	infoBytes := []byte(infoBencoded)
-	infoHash := sha1.Sum([]byte(infoBytes))
-	conMessage = append(conMessage, infoHash[:]...)
-	conMessage = append(conMessage, []byte("00112233445566778899")...)
-
-	conn.Write(conMessage)
-
-	reply := make([]byte, 68)
-	conn.Read(reply)
-	// fmt.Println(reply)
-	responsePeerId := reply[48:68]
-	fmt.Printf("Peer ID: %x\n", responsePeerId)
+func cmdDownloadPiece(torrentData []byte, outputFilename string, pieceId string) {
+	torrentDetails, err := parseTorrentFile(torrentData)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	addPeersToTorrentDetails(&torrentDetails)
+	// pieceIndex, err := strconv.Atoi(pieceId)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
+	// // just use the first peer for now
+	// peer := torrentDetails.Peers[0]
+	// decodedHandshake, _ := handshake(torrentDetails, peer.IP + ":" + fmt.Sprint(peer.Port))
 }
 
 func main() {
@@ -116,6 +111,17 @@ func main() {
 		}
 
 		cmdHandShake(torrentData, peerAddress)
+	} else if command == "download_piece" {
+		// os.Args[2] is just "-o"
+		outputFilename := os.Args[3]
+		torrentFilePath := os.Args[4]
+		pieceId := os.Args[5]
+		torrentData, err := os.ReadFile(torrentFilePath)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		cmdDownloadPiece(torrentData, outputFilename, pieceId)
 	} else {
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
