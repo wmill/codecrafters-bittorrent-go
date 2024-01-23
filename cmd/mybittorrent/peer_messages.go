@@ -234,22 +234,13 @@ func downloadPiece(torrentDetails *TorrentDetails, peer TorrentPeer, pieceIndex 
 		// following responses don't have the piece id
 		if response.ID == Piece {
 			pieceData += string(response.Payload[8:])
-			//copy(pieceData[i * ChunkSize:], response.Payload[8:])
 		} else {
-			// copy(pieceData[i * ChunkSize:], response.Payload)
 			fmt.Println("Expected piece message, got something else")
 			fmt.Println(response.ID)
 			fmt.Printf("payload length: %d\n", len(response.Payload))
-			// pieceData += string(response.Payload)
-			// fmt.Println("Retyring")
-			// i--
-			// continue
-		}
-		// time.Sleep(100)
-	
+
+		}	
 	}
 	fmt.Printf("Piece size: %d\nData size: %d\n", pieceLength, len(pieceData))
 	os.WriteFile(outputFilename, []byte(pieceData), 0644)
-	// fmt.Printf("%d\n", len(pieceData))
-	// fmt.Printf("%s\n", pieceData)
 }
