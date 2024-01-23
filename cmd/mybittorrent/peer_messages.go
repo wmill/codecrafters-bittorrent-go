@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 )
 
 const (
@@ -103,6 +104,7 @@ func recievePeerMessage(conn net.Conn) (DecodedPeerMessage, error) {
 		}
 
 		length := binary.BigEndian.Uint32(lengthBuffer)
+		fmt.Printf("Length: %d\n", length)
 		if length == 0 {
 			fmt.Println("Keep alive")
 			continue
@@ -111,6 +113,7 @@ func recievePeerMessage(conn net.Conn) (DecodedPeerMessage, error) {
 		response.Body = make([]byte, length + 4)
 		copy(response.Body[0:4], lengthBuffer)
 		_, err = conn.Read(response.Body[4:])
+		fmt.Printf("Read Length: %d\n", len(response.Body[4:]))
 
 		if err != nil {
 			fmt.Println(err)
@@ -174,7 +177,7 @@ func downloadPiece(torrentDetails *TorrentDetails, peer TorrentPeer, pieceIndex 
 
 
 	numberOfChunks := torrentDetails.PieceLength / ChunkSize
-	pieceData := make([]byte, torrentDetails.PieceLength)
+	pieceData := ""
 	
 	for i := 0; i < numberOfChunks; i++ {
 		// send request message
@@ -202,14 +205,23 @@ func downloadPiece(torrentDetails *TorrentDetails, peer TorrentPeer, pieceIndex 
 
 		// following responses don't have the piece id
 		if response.ID == Piece {
-			copy(pieceData[i * ChunkSize:], response.Payload[8:])
+			pieceData += string(response.Payload[8:])
+			//copy(pieceData[i * ChunkSize:], response.Payload[8:])
 		} else {
-			copy(pieceData[i * ChunkSize:], response.Payload)
+			// copy(pieceData[i * ChunkSize:], response.Payload)
+			fmt.Println("Expected piece message, got something else")
+			fmt.Println(response.ID)
+			fmt.Printf("payload length: %d\n", len(response.Payload))
+			// pieceData += string(response.Payload)
+			// fmt.Println("Retyring")
+			// i--
+			// continue
 		}
+		time.Sleep(100)
 	
 	}
 
-	os.WriteFile(outputFilename, pieceData, 0644)
+	os.WriteFile(outputFilename, []byte(pieceData), 0644)
 	// fmt.Printf("%d\n", len(pieceData))
 	// fmt.Printf("%s\n", pieceData)
 
