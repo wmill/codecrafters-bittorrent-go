@@ -68,7 +68,24 @@ func cmdDownloadPiece(torrentData []byte, outputFilename string, pieceId string)
 	}
 	// just use the first peer for now
 	peer := torrentDetails.Peers[0]
-	downloadPiece(&torrentDetails, peer, pieceIndex, outputFilename)
+	piece, err := downloadPiece(&torrentDetails, &peer, pieceIndex)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	os.WriteFile(outputFilename, []byte(piece.Body), 0644)
+}
+
+func cmdDownloadFile(torrentData []byte, outputFilename string) {
+	torrentDetails, err := parseTorrentFile(torrentData)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	addPeersToTorrentDetails(&torrentDetails)
+	peer := torrentDetails.Peers[0]
+	downloadFile(&torrentDetails, &peer, outputFilename)
 }
 
 func main() {
@@ -123,6 +140,16 @@ func main() {
 			return
 		}
 		cmdDownloadPiece(torrentData, outputFilename, pieceId)
+	} else if command == "download" {
+		// os.Args[2] is just "-o"
+		outputFilename := os.Args[3]
+		torrentFilePath := os.Args[4]
+		torrentData, err := os.ReadFile(torrentFilePath)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		cmdDownloadFile(torrentData, outputFilename)
 	} else {
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)

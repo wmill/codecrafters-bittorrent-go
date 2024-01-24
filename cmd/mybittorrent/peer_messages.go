@@ -1,12 +1,12 @@
 package main
 
 import (
+	"crypto/sha1"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"math"
 	"net"
-	"os"
 )
 
 const (
@@ -29,6 +29,20 @@ type DecodedPeerMessage struct {
 }
 
 type EncodedPeerMessage struct {
+	Body []byte
+}
+
+type TorrentPieceHashError struct {
+	Message string
+}
+
+func (e *TorrentPieceHashError) Error() string {
+	return e.Message
+}
+
+type TorrentPiece struct {
+	Index int
+	Hash [20]byte
 	Body []byte
 }
 
@@ -135,13 +149,12 @@ func recievePeerMessage(conn net.Conn) (DecodedPeerMessage, error) {
 }
 
 
-func downloadPiece(torrentDetails *TorrentDetails, peer TorrentPeer, pieceIndex int, outputFilename string) {
+func downloadPiece(torrentDetails *TorrentDetails, peer *TorrentPeer, pieceIndex int) (*TorrentPiece, error) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", peer.IP, peer.Port))
-	// fmt.Printf("%s:%d", peer.IP, peer.Port)
 
 	if err != nil {
 		fmt.Println(err)
-		return
+		return &TorrentPiece{}, err
 	}
 
 	defer conn.Close()
@@ -166,7 +179,7 @@ func downloadPiece(torrentDetails *TorrentDetails, peer TorrentPeer, pieceIndex 
 
 	if err != nil {
 		fmt.Println(err)
-		return
+		return &TorrentPiece{}, err
 	}
 
 	// receive unchoke message
@@ -176,7 +189,7 @@ func downloadPiece(torrentDetails *TorrentDetails, peer TorrentPeer, pieceIndex 
 	if response.ID != Unchoke {
 		fmt.Println("Expected unchoke message")
 		fmt.Println(response.ID)
-		return
+		return &TorrentPiece{}, &TorrentPieceHashError{"Expected unchoke message"}
 	}
 
 
@@ -187,7 +200,6 @@ func downloadPiece(torrentDetails *TorrentDetails, peer TorrentPeer, pieceIndex 
 	}
 
 	numberOfChunks := int(math.Ceil(float64(pieceLength) / float64(ChunkSize)))
-	// numberOfChunks := torrentDetails.PieceLength / ChunkSize + 1
 	pieceData := ""
 
 	retryCount := 5
@@ -241,6 +253,13 @@ func downloadPiece(torrentDetails *TorrentDetails, peer TorrentPeer, pieceIndex 
 
 		}	
 	}
-	fmt.Printf("Piece size: %d\nData size: %d\n", pieceLength, len(pieceData))
-	os.WriteFile(outputFilename, []byte(pieceData), 0644)
+	chunkHash := sha1.Sum([]byte(pieceData))
+	var pieceHash [20]byte
+	copy(pieceHash[:], torrentDetails.PieceHashes[pieceIndex])
+	fmt.Printf("Piece size: %d\nData size: %d\n Hashmatch: %t\n", pieceLength, len(pieceData), chunkHash == pieceHash)
+	if chunkHash != pieceHash {
+		return &TorrentPiece{}, &TorrentPieceHashError{"Piece hash does not match"}
+	}
+
+	return &TorrentPiece{Index: pieceIndex, Hash: pieceHash, Body: []byte(pieceData)}, nil
 }
